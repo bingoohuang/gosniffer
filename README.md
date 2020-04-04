@@ -18,32 +18,43 @@
 - ...
 
 ## Demo:
+
 ``` bash
 $ gosniffer en0 mysql
 ```
 ![image](https://github.com/bingoohuang/gosniffer/raw/master/images/demo.gif)
+
 ## Setup:
+
 - support : `MacOS` `Linux` `Unix`
 - not support : `windows`
 - If you encounter problems in the `go get` process, try upgrading the go version （如果go get 过程中遇到问题，请尝试升级go版本）
 
 ### Centos
+
 ``` bash
 $ yum -y install libpcap-devel
 ```
+
 ### Ubuntu
+
 ``` bash
 $ apt-get install libpcap-dev
 ```
+
 ### MacOs
+
 ``` bash
 
 ```
+
 ### RUN
+
 ``` bash
-$ go get -v -u github.com/bingoohuang/gosniffer
+$ go get -v github.com/bingoohuang/gosniffer
 $ cp -rf $(go env GOPATH)/bin/gosniffer /usr/local/bin
 $ gosniffer
+
 ```
 ## Usage:
 ``` bash
@@ -105,9 +116,3 @@ $ gosniffer en0 redis
 $ gosniffer eth0 http -p 8080
 $ gosniffer eth1 mongodb
 ```
-## License:
-[MIT](http://opensource.org/licenses/MIT)
-
-## 感谢
-
-<img src="https://github.com/bingoohuang/gosniffer/raw/thx/images/wechat.jpg" width = "450" height = "450" div align=left />
