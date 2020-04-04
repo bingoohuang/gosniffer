@@ -1,11 +1,11 @@
 
-# go-sniffer
+# gosniffer
 
 > Capture mysql,redis,http,mongodb etc protocol...
 > 抓包截取项目中的数据库请求并解析成相应的语句，如mysql协议会解析为sql语句,便于调试。
 > 不要修改代码，直接嗅探项目中的数据请求。
 
-[![GitHub license](https://img.shields.io/github/license/40t/go-sniffer.svg?style=popout-square)](https://github.com/40t/go-sniffer/blob/master/LICENSE)
+[![GitHub license](https://img.shields.io/github/license/bingoohuang/gosniffer.svg?style=popout-square)](https://github.com/bingoohuang/gosniffer/blob/master/LICENSE)
 
 #### [中文使用说明](#中文使用说明)
 
@@ -19,9 +19,9 @@
 
 ## Demo:
 ``` bash
-$ go-sniffer en0 mysql
+$ gosniffer en0 mysql
 ```
-![image](https://github.com/40t/go-sniffer/raw/master/images/demo.gif)
+![image](https://github.com/bingoohuang/gosniffer/raw/master/images/demo.gif)
 ## Setup:
 - support : `MacOS` `Linux` `Unix`
 - not support : `windows`
@@ -41,29 +41,29 @@ $ apt-get install libpcap-dev
 ```
 ### RUN
 ``` bash
-$ go get -v -u github.com/40t/go-sniffer
-$ cp -rf $(go env GOPATH)/bin/go-sniffer /usr/local/bin
-$ go-sniffer
+$ go get -v -u github.com/bingoohuang/gosniffer
+$ cp -rf $(go env GOPATH)/bin/gosniffer /usr/local/bin
+$ gosniffer
 ```
 ## Usage:
 ``` bash
 ==================================================================================
 [Usage]
 
-    go-sniffer [device] [plug] [plug's params(optional)]
+    gosniffer [device] [plug] [plug's params(optional)]
 
     [Example]
-          go-sniffer en0 redis          Capture redis packet
-          go-sniffer en0 mysql -p 3306  Capture mysql packet
+          gosniffer en0 redis          Capture redis packet
+          gosniffer en0 mysql -p 3306  Capture mysql packet
 
-    go-sniffer --[commend]
+    gosniffer --[commend]
                --help "this page"
                --env  "environment variable"
                --list "Plug-in list"
                --ver  "version"
                --dev  "device"
     [Example]
-          go-sniffer --list "show all plug-in"
+          gosniffer --list "show all plug-in"
 
 ==================================================================================
 [device] : lo0 :   127.0.0.1
@@ -76,20 +76,20 @@ $ go-sniffer
 =======================================================================
 [使用说明]
 
-    go-sniffer [设备名] [插件名] [插件参数(可选)]
+    gosniffer [设备名] [插件名] [插件参数(可选)]
 
     [例子]
-          go-sniffer en0 redis          抓取redis数据包
-          go-sniffer en0 mysql -p 3306  抓取mysql数据包,端口3306
+          gosniffer en0 redis          抓取redis数据包
+          gosniffer en0 mysql -p 3306  抓取mysql数据包,端口3306
 
-    go-sniffer --[命令]
+    gosniffer --[命令]
                --help 帮助信息
                --env  环境变量
                --list 插件列表
                --ver  版本信息
                --dev  设备列表
     [例子]
-          go-sniffer --list 查看可抓取的协议
+          gosniffer --list 查看可抓取的协议
 
 =======================================================================
 [设备名] : lo0 :   127.0.0.1
@@ -100,14 +100,14 @@ $ go-sniffer
 
 ### Example:
 ``` bash
-$ go-sniffer lo0 mysql 
-$ go-sniffer en0 redis 
-$ go-sniffer eth0 http -p 8080
-$ go-sniffer eth1 mongodb
+$ gosniffer lo0 mysql 
+$ gosniffer en0 redis 
+$ gosniffer eth0 http -p 8080
+$ gosniffer eth1 mongodb
 ```
 ## License:
 [MIT](http://opensource.org/licenses/MIT)
 
 ## 感谢
 
-<img src="https://github.com/40t/go-sniffer/raw/thx/images/wechat.jpg" width = "450" height = "450" div align=left />
+<img src="https://github.com/bingoohuang/gosniffer/raw/thx/images/wechat.jpg" width = "450" height = "450" div align=left />

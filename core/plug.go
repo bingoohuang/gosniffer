@@ -1,24 +1,24 @@
 package core
 
 import (
-	"io/ioutil"
-	"plugin"
-	"github.com/google/gopacket"
-	"io"
-	mysql "github.com/40t/go-sniffer/plugSrc/mysql/build"
-	redis "github.com/40t/go-sniffer/plugSrc/redis/build"
-	hp "github.com/40t/go-sniffer/plugSrc/http/build"
-	mongodb "github.com/40t/go-sniffer/plugSrc/mongodb/build"
-	"path/filepath"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"path"
+	"path/filepath"
+	"plugin"
+
+	hp "github.com/bingoohuang/gosniffer/plugs/http/build"
+	mongodb "github.com/bingoohuang/gosniffer/plugs/mongodb/build"
+	mysql "github.com/bingoohuang/gosniffer/plugs/mysql/build"
+	redis "github.com/bingoohuang/gosniffer/plugs/redis/build"
+	"github.com/google/gopacket"
 )
 
 type Plug struct {
-
-	dir string
+	dir           string
 	ResolveStream func(net gopacket.Flow, transport gopacket.Flow, r io.Reader)
-	BPF string
+	BPF           string
 
 	InternalPlugList map[string]PlugInterface
 	ExternalPlugList map[string]ExternalPlug
@@ -48,7 +48,7 @@ func NewPlug() *Plug {
 
 	var p Plug
 
-	p.dir, _ = filepath.Abs( "./plug/")
+	p.dir, _ = filepath.Abs("./plug/")
 	p.LoadInternalPlugList()
 	p.LoadExternalPlugList()
 
@@ -60,16 +60,16 @@ func (p *Plug) LoadInternalPlugList() {
 	list := make(map[string]PlugInterface)
 
 	//Mysql
-	list["mysql"]   = mysql.NewInstance()
+	list["mysql"] = mysql.NewInstance()
 
 	//Mongodb
-	list["mongodb"]   = mongodb.NewInstance()
+	list["mongodb"] = mongodb.NewInstance()
 
 	//Redis
-	list["redis"]   = redis.NewInstance()
+	list["redis"] = redis.NewInstance()
 
 	//Http
-	list["http"]    = hp.NewInstance()
+	list["http"] = hp.NewInstance()
 
 	p.InternalPlugList = list
 }
@@ -87,7 +87,7 @@ func (p *Plug) LoadExternalPlugList() {
 			continue
 		}
 
-		plug, err := plugin.Open(p.dir+"/"+fi.Name())
+		plug, err := plugin.Open(p.dir + "/" + fi.Name())
 		if err != nil {
 			panic(err)
 		}
@@ -113,12 +113,12 @@ func (p *Plug) LoadExternalPlugList() {
 		}
 
 		version := versionFunc.(func() string)()
-		p.ExternalPlugList[fi.Name()] = ExternalPlug {
-			ResolvePacket:ResolvePacketFunc.(func(net gopacket.Flow, transport gopacket.Flow, r io.Reader)),
-			SetFlag:setFlagFunc.(func([]string)),
-			BPFFilter:BPFFilterFunc.(func() string),
-			Version:version,
-			Name:fi.Name(),
+		p.ExternalPlugList[fi.Name()] = ExternalPlug{
+			ResolvePacket: ResolvePacketFunc.(func(net gopacket.Flow, transport gopacket.Flow, r io.Reader)),
+			SetFlag:       setFlagFunc.(func([]string)),
+			BPFFilter:     BPFFilterFunc.(func() string),
+			Version:       version,
+			Name:          fi.Name(),
 		}
 	}
 }
@@ -131,7 +131,7 @@ func (p *Plug) PrintList() {
 
 	//Print Internal Plug
 	for inPlugName, _ := range p.InternalPlugList {
-		fmt.Println("internal plug : "+inPlugName)
+		fmt.Println("internal plug : " + inPlugName)
 	}
 
 	//split
@@ -139,7 +139,7 @@ func (p *Plug) PrintList() {
 
 	//print External Plug
 	for exPlugName, _ := range p.ExternalPlugList {
-		fmt.Println("external plug : "+exPlugName)
+		fmt.Println("external plug : " + exPlugName)
 	}
 }
 
@@ -150,13 +150,13 @@ func (p *Plug) SetOption(plugName string, plugParams []string) {
 
 		p.ResolveStream = internalPlug.ResolveStream
 		internalPlug.SetFlag(plugParams)
-		p.BPF =  internalPlug.BPFFilter()
+		p.BPF = internalPlug.BPFFilter()
 
 		return
 	}
 
 	//Load External Plug
-	plug, err := plugin.Open("./plug/"+ plugName)
+	plug, err := plugin.Open("./plug/" + plugName)
 	if err != nil {
 		panic(err)
 	}
@@ -174,5 +174,5 @@ func (p *Plug) SetOption(plugName string, plugParams []string) {
 	}
 	p.ResolveStream = resolvePacket.(func(net gopacket.Flow, transport gopacket.Flow, r io.Reader))
 	setFlag.(func([]string))(plugParams)
-	p.BPF = BPFFilter.(func()string)()
+	p.BPF = BPFFilter.(func() string)()
 }
