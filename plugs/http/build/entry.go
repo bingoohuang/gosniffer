@@ -6,66 +6,95 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/http/httputil"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/google/gopacket"
 )
 
 const (
-	Port    = 80
+	Port    = "80"
 	Version = "0.1"
 )
 
 const (
 	CmdPort = "-p"
+	CmdBody = "-b"
 )
 
 type H struct {
-	port    int
+	port    string
+	body    string
 	version string
 }
 
-var hp *H
-
 func NewInstance() *H {
-	if hp == nil {
-		hp = &H{
-			port:    Port,
-			version: Version,
-		}
+	return &H{
+		port:    Port,
+		version: Version,
 	}
-	return hp
 }
 
 func (m *H) ResolveStream(net, transport gopacket.Flow, buf io.Reader) {
 	bio := bufio.NewReader(buf)
 	transportString := transport.String() + ": "
 
-	for {
-		req, err := http.ReadRequest(bio)
+	src, _ := transport.Endpoints()
+	srcValue := fmt.Sprintf("%v", src)
+	reqBody := m.showBody("req")
+	rspBody := m.showBody("rsp")
 
-		if err == io.EOF {
-			log.Println(transportString + "[EOF]")
-			return
+	if srcValue == m.port {
+		for {
+			resp, err := http.ReadResponse(bio, nil)
+			if err == io.EOF || err == io.ErrUnexpectedEOF {
+				log.Println(transportString + "[RESPONSE EOF]")
+				return
+			}
+
+			if err != nil {
+				continue
+			}
+
+			dump, _ := httputil.DumpResponse(resp, reqBody)
+			_ = resp.Body.Close()
+
+			log.Print("\n", string(dump))
 		}
+	} else {
+		for {
+			req, err := http.ReadRequest(bio)
 
-		if err != nil {
-			continue
+			if err == io.EOF || err == io.ErrUnexpectedEOF {
+				log.Println(transportString + "[REQUEST EOF]")
+				return
+			}
+
+			if err != nil {
+				continue
+			}
+
+			dump, _ := httputil.DumpRequest(req, rspBody)
+			_ = req.Body.Close()
+
+			log.Print("\n", string(dump))
 		}
+	}
+}
 
-		msg := transportString + "[" + req.Method + "] [" + req.Host + req.URL.String() + "] ["
-		_ = req.ParseForm()
-		msg += req.Form.Encode() + "] "
-
-		log.Println(msg)
-
-		_ = req.Body.Close()
+func (m *H) showBody(key string) bool {
+	switch m.body {
+	case "all":
+		return true
+	default:
+		return strings.Contains(m.body, key)
 	}
 }
 
 func (m *H) BPFFilter() string {
-	return "tcp and port " + strconv.Itoa(m.port)
+	return "tcp and port " + m.port
 }
 
 func (m *H) Version() string {
@@ -78,25 +107,30 @@ func (m *H) SetFlag(flg []string) {
 	if c == 0 {
 		return
 	}
+
 	if c>>1 == 0 {
 		fmt.Println("ERR : Http Number of parameters")
 		os.Exit(1)
 	}
-	for i := 0; i < c; i = i + 2 {
+
+	for i := 0; i < c; i += 2 {
 		key := flg[i]
 		val := flg[i+1]
 
 		switch key {
 		case CmdPort:
 			port, err := strconv.Atoi(val)
-			m.port = port
+			m.port = val
+
 			if err != nil {
 				panic("ERR : port")
 			}
+
 			if port < 0 || port > 65535 {
 				panic("ERR : port(0-65535)")
 			}
-			break
+		case CmdBody:
+			m.body = val
 		default:
 			panic("ERR : mysql's params")
 		}

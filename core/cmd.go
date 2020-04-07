@@ -8,13 +8,13 @@ import (
 	"strings"
 )
 
-const InternalCmdPrefix = "--"
 const (
-	InternalCmdHelp = "help"
-	InternalCmdEnv  = "env"
-	InternalCmdList = "list"
-	InternalCmdVer  = "ver"
-	InternalDevice  = "dev"
+	InternalCmdPrefix = "--"
+	InternalCmdHelp   = "help"
+	InternalCmdEnv    = "env"
+	InternalCmdList   = "list"
+	InternalCmdVer    = "ver"
+	InternalDevice    = "dev"
 )
 
 type Cmd struct {
@@ -23,7 +23,6 @@ type Cmd struct {
 }
 
 func NewCmd(p *Plug) *Cmd {
-
 	return &Cmd{
 		plugHandle: p,
 	}
@@ -31,7 +30,6 @@ func NewCmd(p *Plug) *Cmd {
 
 //start
 func (cm *Cmd) Run() {
-
 	//print help
 	if len(os.Args) <= 1 {
 		cm.printHelpMessage()
@@ -39,7 +37,7 @@ func (cm *Cmd) Run() {
 	}
 
 	//parse command
-	firstArg := string(os.Args[1])
+	firstArg := os.Args[1]
 	if strings.HasPrefix(firstArg, InternalCmdPrefix) {
 		cm.parseInternalCmd()
 	} else {
@@ -50,26 +48,20 @@ func (cm *Cmd) Run() {
 //parse internal commend
 //like --help, --env, --device
 func (cm *Cmd) parseInternalCmd() {
-
-	arg := string(os.Args[1])
-	cmd := strings.Trim(arg, InternalCmdPrefix)
+	arg := os.Args[1]
+	cmd := strings.TrimPrefix(arg, InternalCmdPrefix)
 
 	switch cmd {
 	case InternalCmdHelp:
 		cm.printHelpMessage()
-		break
 	case InternalCmdEnv:
 		fmt.Println("External plug-in path : " + cm.plugHandle.dir)
-		break
 	case InternalCmdList:
 		cm.plugHandle.PrintList()
-		break
 	case InternalCmdVer:
 		fmt.Println(cxt.Version)
-		break
 	case InternalDevice:
 		cm.printDevice()
-		break
 	}
 	os.Exit(1)
 }
@@ -83,8 +75,12 @@ func (cm *Cmd) printHelpMessage() {
 	fmt.Println("    gosniffer [device] [plug] [plug's params(optional)]")
 	fmt.Println()
 	fmt.Println("    [exp]")
-	fmt.Println("          gosniffer en0 redis          Capture redis packet")
-	fmt.Println("          gosniffer en0 mysql -p 3306  Capture mysql packet")
+	fmt.Println("          gosniffer en0 redis                 Capture redis packet")
+	fmt.Println("          gosniffer en0 mysql -p 3306         Capture mysql packet")
+	fmt.Println("          gosniffer en0 http -p 3306          Capture http packet without body")
+	fmt.Println("          gosniffer en0 http -p 3306 -b all   Capture http packet with body of request and response")
+	fmt.Println("          gosniffer en0 http -p 3306 -b req   Capture http packet with body of request")
+	fmt.Println("          gosniffer en0 http -p 3306 -b rsp   Capture http packet with body of response")
 	fmt.Println()
 	fmt.Println("    gosniffer --[commend]")
 	fmt.Println("               --help \"this page\"")
@@ -127,7 +123,6 @@ func (cm *Cmd) printDevice() {
 
 //Parameters needed for plug-ins
 func (cm *Cmd) parsePlugCmd() {
-
 	if len(os.Args) < 3 {
 		fmt.Println("not found [Plug-in name]")
 		fmt.Println("gosniffer [device] [plug] [plug's params(optional)]")
