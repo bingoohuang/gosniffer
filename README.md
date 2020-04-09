@@ -102,11 +102,6 @@ $ gosniffer
     [例子]
           gosniffer --list 查看可抓取的协议
           
-## Relative resources
-
-1. [Netgraph is a packet sniffer tool that captures all HTTP requests/responses, and display them in web page.](https://github.com/ga0/netgraph)
-
-
 =======================================================================
 [设备名] : lo0 :   127.0.0.1
 [设备名] : en0 : x:x:x:x:x5:x  192.168.1.3
@@ -121,3 +116,8 @@ $ gosniffer en0 redis
 $ gosniffer eth0 http -p 8080
 $ gosniffer eth1 mongodb
 ```
+
+## Relative resources
+
+1. [Netgraph is a packet sniffer tool that captures all HTTP requests/responses, and display them in web page.](https://github.com/ga0/netgraph)
+
