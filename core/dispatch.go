@@ -26,8 +26,6 @@ func NewDispatch(plug *Plug, cmd *Cmd) *Dispatch {
 }
 
 func (d *Dispatch) Capture() {
-
-	//init device
 	handle, err := pcap.OpenLive(d.device, 65535, false, pcap.BlockForever)
 	if err != nil {
 		log.Fatal(err)

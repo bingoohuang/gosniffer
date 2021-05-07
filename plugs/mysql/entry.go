@@ -10,16 +10,13 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/google/gopacket"
 )
 
 const (
-	Port    = 3306
 	Version = "0.1"
-	CmdPort = "-p"
 )
 
 type Mysql struct {
@@ -40,30 +37,19 @@ type packet struct {
 	payload      []byte
 }
 
-var mysql *Mysql
-var once sync.Once
-
 func NewInstance() *Mysql {
-
-	once.Do(func() {
-		mysql = &Mysql{
-			port:    Port,
-			version: Version,
-			source:  make(map[string]*stream),
-		}
-	})
-
-	return mysql
+	return &Mysql{
+		port:    3306,
+		version: Version,
+		source:  make(map[string]*stream),
+	}
 }
 
 func (m *Mysql) ResolveStream(net, transport gopacket.Flow, buf io.Reader) {
-
-	//uuid
 	uuid := fmt.Sprintf("%v:%v", net.FastHash(), transport.FastHash())
 
 	//generate resolve's stream
 	if _, ok := m.source[uuid]; !ok {
-
 		var newStream = stream{
 			packets: make(chan *packet, 100),
 			stmtMap: make(map[uint32]*Stmt),
@@ -87,31 +73,27 @@ func (m *Mysql) ResolveStream(net, transport gopacket.Flow, buf io.Reader) {
 	}
 }
 
-func (m *Mysql) BPFFilter() string {
-	return "tcp and port " + strconv.Itoa(m.port)
-}
+func (m *Mysql) BPFFilter() string { return "tcp and port " + strconv.Itoa(m.port) }
 
-func (m *Mysql) Version() string {
-	return Version
-}
+func (m *Mysql) Version() string { return Version }
 
 func (m *Mysql) SetFlag(flg []string) {
-
 	c := len(flg)
-
 	if c == 0 {
 		return
 	}
+
 	if c>>1 == 0 {
 		fmt.Println("ERR : Mysql Number of parameters")
 		os.Exit(1)
 	}
+
 	for i := 0; i < c; i = i + 2 {
 		key := flg[i]
 		val := flg[i+1]
 
 		switch key {
-		case CmdPort:
+		case "-p":
 			port, err := strconv.Atoi(val)
 			m.port = port
 			if err != nil {

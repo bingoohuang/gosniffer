@@ -10,11 +10,6 @@ import (
 
 const (
 	InternalCmdPrefix = "--"
-	InternalCmdHelp   = "help"
-	InternalCmdEnv    = "env"
-	InternalCmdList   = "list"
-	InternalCmdVer    = "ver"
-	InternalDevice    = "dev"
 )
 
 type Cmd struct {
@@ -23,14 +18,10 @@ type Cmd struct {
 }
 
 func NewCmd(p *Plug) *Cmd {
-	return &Cmd{
-		plugHandle: p,
-	}
+	return &Cmd{plugHandle: p}
 }
 
-//start
-func (cm *Cmd) Run() {
-	//print help
+func (cm *Cmd) Parse() {
 	if len(os.Args) <= 1 {
 		cm.printHelpMessage()
 		os.Exit(1)
@@ -45,32 +36,29 @@ func (cm *Cmd) Run() {
 	}
 }
 
-//parse internal commend
-//like --help, --env, --device
+// parseInternalCmd parse internal command like --help, --env, --device.
 func (cm *Cmd) parseInternalCmd() {
 	arg := os.Args[1]
 	cmd := strings.TrimPrefix(arg, InternalCmdPrefix)
 
 	switch cmd {
-	case InternalCmdHelp:
+	case "help":
 		cm.printHelpMessage()
-	case InternalCmdEnv:
+	case "env":
 		fmt.Println("External plug-in path : " + cm.plugHandle.dir)
-	case InternalCmdList:
+	case "list":
 		cm.plugHandle.PrintList()
-	case InternalCmdVer:
+	case "ver":
 		fmt.Println(cxt.Version)
-	case InternalDevice:
-		cm.printDevice()
+	case "dev":
+		cm.printDevices()
 	}
 	os.Exit(1)
 }
 
 //usage
 func (cm *Cmd) printHelpMessage() {
-	fmt.Println("==================================================================================")
-	fmt.Println("[Usage]")
-	fmt.Println("")
+	fmt.Println("=========================== Usage =================================")
 	fmt.Println("gosniffer [device] [plug] [plug's params(optional)]")
 	fmt.Println()
 	fmt.Println("[exp]")
@@ -88,20 +76,17 @@ func (cm *Cmd) printHelpMessage() {
 	fmt.Println("[exp]")
 	fmt.Println("    gosniffer --list \"show all plug-in\"")
 	fmt.Println()
-	fmt.Println("==================================================================================")
-	cm.printDevice()
-	fmt.Println("==================================================================================")
+	fmt.Println("=============================== Devices ================================")
+	cm.printDevices()
 }
 
-//print plug-in list
-func (cm *Cmd) printPlugList() {
-	l := len(cm.plugHandle.InternalPlugList)
+func (cm *Cmd) printPlugins() {
+	l := len(cm.plugHandle.InternalPlugins)
 	l += len(cm.plugHandle.ExternalPlugList)
 	fmt.Println("# Number of plug-ins : " + strconv.Itoa(l))
 }
 
-//print device
-func (cm *Cmd) printDevice() {
+func (cm *Cmd) printDevices() {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		panic(err)

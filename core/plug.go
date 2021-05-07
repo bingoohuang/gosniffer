@@ -20,16 +20,16 @@ type Plug struct {
 	ResolveStream func(net gopacket.Flow, transport gopacket.Flow, r io.Reader)
 	BPF           string
 
-	InternalPlugList map[string]PlugInterface
+	InternalPlugins  map[string]Plugin
 	ExternalPlugList map[string]ExternalPlug
 }
 
-// PlugInterface internal plug-ins must implement this interface
+// Plugin internal plug-ins must implement this interface
 // ResolvePacket - entry
 // BPFFilter     - set BPF, like: mysql(tcp and port 3306)
 // SetFlag       - plug-in params
 // Version       - plug-in version
-type PlugInterface interface {
+type Plugin interface {
 	ResolveStream(net gopacket.Flow, transport gopacket.Flow, r io.Reader)
 	BPFFilter() string
 	SetFlag([]string)
@@ -45,29 +45,24 @@ type ExternalPlug struct {
 }
 
 func NewPlug() *Plug {
-
 	var p Plug
-
 	p.dir, _ = filepath.Abs("./plug/")
-	p.LoadInternalPlugList()
-	p.LoadExternalPlugList()
+	p.LoadInternalPlugins()
+	p.LoadExternalPlugins()
 
 	return &p
 }
 
-func (p *Plug) LoadInternalPlugList() {
-	list := map[string]PlugInterface{
+func (p *Plug) LoadInternalPlugins() {
+	p.InternalPlugins = map[string]Plugin{
 		"mysql":   mysql.NewInstance(),
 		"mongodb": mongodb.NewInstance(),
 		"redis":   redis.NewInstance(),
 		"http":    http.NewInstance(),
 	}
-
-	p.InternalPlugList = list
 }
 
-func (p *Plug) LoadExternalPlugList() {
-
+func (p *Plug) LoadExternalPlugins() {
 	dir, err := ioutil.ReadDir(p.dir)
 	if err != nil {
 		return
@@ -115,14 +110,11 @@ func (p *Plug) LoadExternalPlugList() {
 	}
 }
 
-func (p *Plug) ChangePath(dir string) {
-	p.dir = dir
-}
+func (p *Plug) ChangePath(dir string) { p.dir = dir }
 
 func (p *Plug) PrintList() {
-
 	//Print Internal Plug
-	for inPlugName, _ := range p.InternalPlugList {
+	for inPlugName, _ := range p.InternalPlugins {
 		fmt.Println("internal plug : " + inPlugName)
 	}
 
@@ -136,13 +128,11 @@ func (p *Plug) PrintList() {
 }
 
 func (p *Plug) SetOption(plugName string, plugParams []string) {
-
 	//Load Internal Plug
-	if internalPlug, ok := p.InternalPlugList[plugName]; ok {
-
-		p.ResolveStream = internalPlug.ResolveStream
-		internalPlug.SetFlag(plugParams)
-		p.BPF = internalPlug.BPFFilter()
+	if pg, ok := p.InternalPlugins[plugName]; ok {
+		p.ResolveStream = pg.ResolveStream
+		pg.SetFlag(plugParams)
+		p.BPF = pg.BPFFilter()
 
 		return
 	}
