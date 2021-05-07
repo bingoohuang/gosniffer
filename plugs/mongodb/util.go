@@ -1,4 +1,4 @@
-package build
+package mongodb
 
 import (
 	"encoding/binary"
@@ -7,7 +7,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/bingoohuang/gosniffer/plugs/mongodb/build/bson"
+	"github.com/bingoohuang/gosniffer/plugs/mongodb/bson"
 )
 
 func GetNowStr(isClient bool) string {

@@ -68,28 +68,25 @@ func (cm *Cmd) parseInternalCmd() {
 
 //usage
 func (cm *Cmd) printHelpMessage() {
-
 	fmt.Println("==================================================================================")
 	fmt.Println("[Usage]")
 	fmt.Println("")
-	fmt.Println("    gosniffer [device] [plug] [plug's params(optional)]")
+	fmt.Println("gosniffer [device] [plug] [plug's params(optional)]")
 	fmt.Println()
-	fmt.Println("    [exp]")
-	fmt.Println("          gosniffer en0 redis                 Capture redis packet")
-	fmt.Println("          gosniffer en0 mysql -p 3306         Capture mysql packet")
-	fmt.Println("          gosniffer en0 http -p 3306          Capture http packet without body")
-	fmt.Println("          gosniffer en0 http -p 3306 -b all   Capture http packet with body of request and response")
-	fmt.Println("          gosniffer en0 http -p 3306 -b req   Capture http packet with body of request")
-	fmt.Println("          gosniffer en0 http -p 3306 -b rsp   Capture http packet with body of response")
+	fmt.Println("[exp]")
+	fmt.Println("   gosniffer en0 redis                           Capture redis packet")
+	fmt.Println("   gosniffer en0 mysql -p 3306                   Capture mysql packet")
+	fmt.Println("   gosniffer en0 http -p 3306                    Capture http packet without body")
+	fmt.Println("   gosniffer en0 http -p 3306 -b [all/req/rsp]   Capture http packet with body of request or response")
 	fmt.Println()
-	fmt.Println("    gosniffer --[commend]")
-	fmt.Println("               --help \"this page\"")
-	fmt.Println("               --env  \"environment variable\"")
-	fmt.Println("               --list \"Plug-in list\"")
-	fmt.Println("               --ver  \"version\"")
-	fmt.Println("               --dev  \"device\"")
-	fmt.Println("    [exp]")
-	fmt.Println("          gosniffer --list \"show all plug-in\"")
+	fmt.Println("   gosniffer --[commend]")
+	fmt.Println("    --help \"this page\"")
+	fmt.Println("    --env  \"environment variable\"")
+	fmt.Println("    --list \"Plug-in list\"")
+	fmt.Println("    --ver  \"version\"")
+	fmt.Println("    --dev  \"device\"")
+	fmt.Println("[exp]")
+	fmt.Println("    gosniffer --list \"show all plug-in\"")
 	fmt.Println()
 	fmt.Println("==================================================================================")
 	cm.printDevice()
@@ -100,7 +97,7 @@ func (cm *Cmd) printHelpMessage() {
 func (cm *Cmd) printPlugList() {
 	l := len(cm.plugHandle.InternalPlugList)
 	l += len(cm.plugHandle.ExternalPlugList)
-	fmt.Println("#    Number of plug-ins : " + strconv.Itoa(l))
+	fmt.Println("# Number of plug-ins : " + strconv.Itoa(l))
 }
 
 //print device

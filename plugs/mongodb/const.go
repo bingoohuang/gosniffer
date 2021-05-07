@@ -1,4 +1,4 @@
-package build
+package mongodb
 
 const (
 	OP_REPLY  = 1    //Reply to a client request. responseTo is set.

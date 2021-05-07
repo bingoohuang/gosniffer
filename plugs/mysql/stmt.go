@@ -1,4 +1,4 @@
-package build
+package mysql
 
 import (
 	"bytes"

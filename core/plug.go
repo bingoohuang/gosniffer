@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"plugin"
 
-	hp "github.com/bingoohuang/gosniffer/plugs/http/build"
-	mongodb "github.com/bingoohuang/gosniffer/plugs/mongodb/build"
-	mysql "github.com/bingoohuang/gosniffer/plugs/mysql/build"
-	redis "github.com/bingoohuang/gosniffer/plugs/redis/build"
+	"github.com/bingoohuang/gosniffer/plugs/http"
+	"github.com/bingoohuang/gosniffer/plugs/mongodb"
+	"github.com/bingoohuang/gosniffer/plugs/mysql"
+	"github.com/bingoohuang/gosniffer/plugs/redis"
 	"github.com/google/gopacket"
 )
 
@@ -24,7 +24,7 @@ type Plug struct {
 	ExternalPlugList map[string]ExternalPlug
 }
 
-// All internal plug-ins must implement this interface
+// PlugInterface internal plug-ins must implement this interface
 // ResolvePacket - entry
 // BPFFilter     - set BPF, like: mysql(tcp and port 3306)
 // SetFlag       - plug-in params
@@ -56,20 +56,12 @@ func NewPlug() *Plug {
 }
 
 func (p *Plug) LoadInternalPlugList() {
-
-	list := make(map[string]PlugInterface)
-
-	//Mysql
-	list["mysql"] = mysql.NewInstance()
-
-	//Mongodb
-	list["mongodb"] = mongodb.NewInstance()
-
-	//Redis
-	list["redis"] = redis.NewInstance()
-
-	//Http
-	list["http"] = hp.NewInstance()
+	list := map[string]PlugInterface{
+		"mysql":   mysql.NewInstance(),
+		"mongodb": mongodb.NewInstance(),
+		"redis":   redis.NewInstance(),
+		"http":    http.NewInstance(),
+	}
 
 	p.InternalPlugList = list
 }

@@ -1,4 +1,4 @@
-package build
+package http
 
 import (
 	"bufio"
@@ -31,10 +31,7 @@ type H struct {
 }
 
 func NewInstance() *H {
-	return &H{
-		port:    Port,
-		version: Version,
-	}
+	return &H{port: Port, version: Version}
 }
 
 func (m *H) ResolveStream(net, transport gopacket.Flow, buf io.Reader) {
@@ -66,7 +63,6 @@ func (m *H) ResolveStream(net, transport gopacket.Flow, buf io.Reader) {
 	} else {
 		for {
 			req, err := http.ReadRequest(bio)
-
 			if err == io.EOF || err == io.ErrUnexpectedEOF {
 				log.Println(transportString + "[REQUEST EOF]")
 				return
@@ -85,25 +81,14 @@ func (m *H) ResolveStream(net, transport gopacket.Flow, buf io.Reader) {
 }
 
 func (m *H) showBody(key string) bool {
-	switch m.body {
-	case "all":
-		return true
-	default:
-		return strings.Contains(m.body, key)
-	}
+	return m.body == "all" || strings.Contains(m.body, key)
 }
 
-func (m *H) BPFFilter() string {
-	return "tcp and port " + m.port
-}
-
-func (m *H) Version() string {
-	return Version
-}
+func (m *H) BPFFilter() string { return "tcp and port " + m.port }
+func (m *H) Version() string   { return Version }
 
 func (m *H) SetFlag(flg []string) {
 	c := len(flg)
-
 	if c == 0 {
 		return
 	}

@@ -1,4 +1,4 @@
-package build
+package redis
 
 import (
 	"bufio"

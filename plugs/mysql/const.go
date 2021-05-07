@@ -1,4 +1,4 @@
-package build
+package mysql
 
 const (
 	ComQueryRequestPacket     string = "【Query】"
