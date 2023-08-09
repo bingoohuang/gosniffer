@@ -75,14 +75,13 @@ import (
 //
 // The JSON null value unmarshals into an interface, map, pointer, or slice
 // by setting that Go value to nil. Because null is often used in JSON to mean
-// ``not present,'' unmarshaling a JSON null into any other Go type has no effect
+// “not present,” unmarshaling a JSON null into any other Go type has no effect
 // on the value and produces no error.
 //
 // When unmarshaling quoted strings, invalid UTF-8 or
 // invalid UTF-16 surrogate pairs are not treated as an error.
 // Instead, they are replaced by the Unicode replacement
 // character U+FFFD.
-//
 func Unmarshal(data []byte, v interface{}) error {
 	// Check for well-formedness.
 	// Avoids filling out half a data structure
@@ -109,8 +108,8 @@ type Unmarshaler interface {
 // An UnmarshalTypeError describes a JSON value that was
 // not appropriate for a value of a specific Go type.
 type UnmarshalTypeError struct {
-	Value  string       // description of JSON value - "bool", "array", "number -5"
 	Type   reflect.Type // type of Go value it could not be assigned to
+	Value  string       // description of JSON value - "bool", "array", "number -5"
 	Offset int64        // error occurred after reading Offset bytes
 }
 
@@ -248,19 +247,19 @@ func isValidNumber(s string) bool {
 
 // decodeState represents the state while decoding a JSON value.
 type decodeState struct {
+	savedError error
+	ext        Extension
 	data       []byte
-	off        int // read offset in data
 	scan       scanner
 	nextscan   scanner // for calls to nextValue
-	savedError error
+	off        int     // read offset in data
 	useNumber  bool
-	ext        Extension
 }
 
 // errPhase is used for errors that should not happen unless
 // there is a bug in the JSON decoder or something is editing
 // the data slice while the decoder executes.
-var errPhase = errors.New("JSON decoder out of sync - data changing underfoot?")
+var errPhase = errors.New("JSON decoder out of sync - data changing underfoot")
 
 func (d *decodeState) init(data []byte) *decodeState {
 	d.data = data
@@ -295,11 +294,12 @@ func (d *decodeState) next() []byte {
 	// Our scanner has seen the opening brace/bracket
 	// and thinks we're still in the middle of the object.
 	// invent a closing brace/bracket to get it out.
-	if c == '{' {
+	switch c {
+	case '{':
 		d.scan.step(&d.scan, '}')
-	} else if c == '[' {
+	case '[':
 		d.scan.step(&d.scan, ']')
-	} else {
+	default:
 		// Was inside a function name. Get out of it.
 		d.scan.step(&d.scan, '(')
 		d.scan.step(&d.scan, ')')
@@ -471,7 +471,7 @@ func (d *decodeState) array(v reflect.Value) {
 		return
 	}
 	if ut != nil {
-		d.saveError(&UnmarshalTypeError{"array", v.Type(), int64(d.off)})
+		d.saveError(&UnmarshalTypeError{Value: "array", Type: v.Type(), Offset: int64(d.off)})
 		d.off--
 		d.next()
 		return
@@ -481,6 +481,9 @@ func (d *decodeState) array(v reflect.Value) {
 
 	// Check type of target.
 	switch v.Kind() {
+	case reflect.Array:
+	case reflect.Slice:
+
 	case reflect.Interface:
 		if v.NumMethod() == 0 {
 			// Decoding into nil interface?  Switch to non-reflect code.
@@ -490,13 +493,10 @@ func (d *decodeState) array(v reflect.Value) {
 		// Otherwise it's invalid.
 		fallthrough
 	default:
-		d.saveError(&UnmarshalTypeError{"array", v.Type(), int64(d.off)})
+		d.saveError(&UnmarshalTypeError{Value: "array", Type: v.Type(), Offset: int64(d.off)})
 		d.off--
 		d.next()
 		return
-	case reflect.Array:
-	case reflect.Slice:
-		break
 	}
 
 	i := 0
@@ -563,8 +563,10 @@ func (d *decodeState) array(v reflect.Value) {
 	}
 }
 
-var nullLiteral = []byte("null")
-var textUnmarshalerType = reflect.TypeOf(new(encoding.TextUnmarshaler)).Elem()
+var (
+	nullLiteral         = []byte("null")
+	textUnmarshalerType = reflect.TypeOf(new(encoding.TextUnmarshaler)).Elem()
+)
 
 // object consumes an object from d.data[d.off-1:], decoding into the value v.
 // the first byte ('{') of the object has been read already.
@@ -583,7 +585,7 @@ func (d *decodeState) object(v reflect.Value) {
 		return
 	}
 	if ut != nil {
-		d.saveError(&UnmarshalTypeError{"object", v.Type(), int64(d.off)})
+		d.saveError(&UnmarshalTypeError{Value: "object", Type: v.Type(), Offset: int64(d.off)})
 		d.off--
 		d.next() // skip over { } in input
 		return
@@ -605,7 +607,7 @@ func (d *decodeState) object(v reflect.Value) {
 		t := v.Type()
 		if t.Key().Kind() != reflect.String &&
 			!reflect.PtrTo(t.Key()).Implements(textUnmarshalerType) {
-			d.saveError(&UnmarshalTypeError{"object", v.Type(), int64(d.off)})
+			d.saveError(&UnmarshalTypeError{Value: "object", Type: v.Type(), Offset: int64(d.off)})
 			d.off--
 			d.next() // skip over { } in input
 			return
@@ -616,7 +618,7 @@ func (d *decodeState) object(v reflect.Value) {
 	case reflect.Struct:
 
 	default:
-		d.saveError(&UnmarshalTypeError{"object", v.Type(), int64(d.off)})
+		d.saveError(&UnmarshalTypeError{Value: "object", Type: v.Type(), Offset: int64(d.off)})
 		d.off--
 		d.next() // skip over { } in input
 		return
@@ -792,7 +794,7 @@ func (d *decodeState) name(v reflect.Value) {
 		return
 	}
 	if ut != nil {
-		d.saveError(&UnmarshalTypeError{"object", v.Type(), int64(d.off)})
+		d.saveError(&UnmarshalTypeError{Value: "object", Type: v.Type(), Offset: int64(d.off)})
 		d.off--
 		d.next() // skip over function in input
 		return
@@ -841,7 +843,7 @@ func (d *decodeState) name(v reflect.Value) {
 		t := v.Type()
 		if t.Key().Kind() != reflect.String &&
 			!reflect.PtrTo(t.Key()).Implements(textUnmarshalerType) {
-			d.saveError(&UnmarshalTypeError{"object", v.Type(), int64(d.off)})
+			d.saveError(&UnmarshalTypeError{Value: "object", Type: v.Type(), Offset: int64(d.off)})
 			d.off--
 			d.next() // skip over { } in input
 			return
@@ -852,14 +854,14 @@ func (d *decodeState) name(v reflect.Value) {
 	case reflect.Struct:
 
 	default:
-		d.saveError(&UnmarshalTypeError{"object", v.Type(), int64(d.off)})
+		d.saveError(&UnmarshalTypeError{Value: "object", Type: v.Type(), Offset: int64(d.off)})
 		d.off--
 		d.next() // skip over { } in input
 		return
 	}
 
 	// TODO Fix case of func field as map.
-	//topv := v
+	// topv := v
 
 	// Figure out field corresponding to function.
 	key := []byte(funcData.key)
@@ -1102,12 +1104,13 @@ func (d *decodeState) storeValue(v reflect.Value, from interface{}) {
 		v = v.Elem()
 	}
 	vt := v.Type()
-	if fromt.AssignableTo(vt) {
+	switch {
+	case fromt.AssignableTo(vt):
 		v.Set(fromv)
-	} else if fromt.ConvertibleTo(vt) {
+	case fromt.ConvertibleTo(vt):
 		v.Set(fromv.Convert(vt))
-	} else {
-		d.saveError(&UnmarshalTypeError{"object", v.Type(), int64(d.off)})
+	default:
+		d.saveError(&UnmarshalTypeError{Value: "object", Type: v.Type(), Offset: int64(d.off)})
 	}
 }
 
@@ -1158,7 +1161,7 @@ func (d *decodeState) convertNumber(s string) (interface{}, error) {
 	}
 	f, err := strconv.ParseFloat(s, 64)
 	if err != nil {
-		return nil, &UnmarshalTypeError{"number " + s, reflect.TypeOf(0.0), int64(d.off)}
+		return nil, &UnmarshalTypeError{Value: "number " + s, Type: reflect.TypeOf(0.0), Offset: int64(d.off)}
 	}
 	return f, nil
 }
@@ -1173,7 +1176,7 @@ var numberType = reflect.TypeOf(Number(""))
 func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool) {
 	// Check for unmarshaler.
 	if len(item) == 0 {
-		//Empty string given
+		// Empty string given
 		d.saveError(fmt.Errorf("json: invalid use of ,string struct tag, trying to unmarshal %q into %v", item, v.Type()))
 		return
 	}
@@ -1191,7 +1194,7 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 			if fromQuoted {
 				d.saveError(fmt.Errorf("json: invalid use of ,string struct tag, trying to unmarshal %q into %v", item, v.Type()))
 			} else {
-				d.saveError(&UnmarshalTypeError{"string", v.Type(), int64(d.off)})
+				d.saveError(&UnmarshalTypeError{Value: "string", Type: v.Type(), Offset: int64(d.off)})
 			}
 			return
 		}
@@ -1226,7 +1229,7 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 			if fromQuoted {
 				d.saveError(fmt.Errorf("json: invalid use of ,string struct tag, trying to unmarshal %q into %v", item, v.Type()))
 			} else {
-				d.saveError(&UnmarshalTypeError{"bool", v.Type(), int64(d.off)})
+				d.saveError(&UnmarshalTypeError{Value: "bool", Type: v.Type(), Offset: int64(d.off)})
 			}
 		case reflect.Bool:
 			v.SetBool(value)
@@ -1234,7 +1237,7 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 			if v.NumMethod() == 0 {
 				v.Set(reflect.ValueOf(value))
 			} else {
-				d.saveError(&UnmarshalTypeError{"bool", v.Type(), int64(d.off)})
+				d.saveError(&UnmarshalTypeError{Value: "bool", Type: v.Type(), Offset: int64(d.off)})
 			}
 		}
 
@@ -1249,10 +1252,10 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 		}
 		switch v.Kind() {
 		default:
-			d.saveError(&UnmarshalTypeError{"string", v.Type(), int64(d.off)})
+			d.saveError(&UnmarshalTypeError{Value: "string", Type: v.Type(), Offset: int64(d.off)})
 		case reflect.Slice:
 			if v.Type().Elem().Kind() != reflect.Uint8 {
-				d.saveError(&UnmarshalTypeError{"string", v.Type(), int64(d.off)})
+				d.saveError(&UnmarshalTypeError{Value: "string", Type: v.Type(), Offset: int64(d.off)})
 				break
 			}
 			b := make([]byte, base64.StdEncoding.DecodedLen(len(s)))
@@ -1268,7 +1271,7 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 			if v.NumMethod() == 0 {
 				v.Set(reflect.ValueOf(string(s)))
 			} else {
-				d.saveError(&UnmarshalTypeError{"string", v.Type(), int64(d.off)})
+				d.saveError(&UnmarshalTypeError{Value: "string", Type: v.Type(), Offset: int64(d.off)})
 			}
 		}
 
@@ -1293,7 +1296,7 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 			if fromQuoted {
 				d.error(fmt.Errorf("json: invalid use of ,string struct tag, trying to unmarshal %q into %v", item, v.Type()))
 			} else {
-				d.error(&UnmarshalTypeError{"number", v.Type(), int64(d.off)})
+				d.error(&UnmarshalTypeError{Value: "number", Type: v.Type(), Offset: int64(d.off)})
 			}
 		case reflect.Interface:
 			n, err := d.convertNumber(s)
@@ -1302,7 +1305,7 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 				break
 			}
 			if v.NumMethod() != 0 {
-				d.saveError(&UnmarshalTypeError{"number", v.Type(), int64(d.off)})
+				d.saveError(&UnmarshalTypeError{Value: "number", Type: v.Type(), Offset: int64(d.off)})
 				break
 			}
 			v.Set(reflect.ValueOf(n))
@@ -1310,7 +1313,7 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			n, err := strconv.ParseInt(s, 10, 64)
 			if err != nil || v.OverflowInt(n) {
-				d.saveError(&UnmarshalTypeError{"number " + s, v.Type(), int64(d.off)})
+				d.saveError(&UnmarshalTypeError{Value: "number " + s, Type: v.Type(), Offset: int64(d.off)})
 				break
 			}
 			v.SetInt(n)
@@ -1318,7 +1321,7 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 			n, err := strconv.ParseUint(s, 10, 64)
 			if err != nil || v.OverflowUint(n) {
-				d.saveError(&UnmarshalTypeError{"number " + s, v.Type(), int64(d.off)})
+				d.saveError(&UnmarshalTypeError{Value: "number " + s, Type: v.Type(), Offset: int64(d.off)})
 				break
 			}
 			v.SetUint(n)
@@ -1326,7 +1329,7 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 		case reflect.Float32, reflect.Float64:
 			n, err := strconv.ParseFloat(s, v.Type().Bits())
 			if err != nil || v.OverflowFloat(n) {
-				d.saveError(&UnmarshalTypeError{"number " + s, v.Type(), int64(d.off)})
+				d.saveError(&UnmarshalTypeError{Value: "number " + s, Type: v.Type(), Offset: int64(d.off)})
 				break
 			}
 			v.SetFloat(n)
@@ -1362,7 +1365,7 @@ func (d *decodeState) syntaxError(expected string) {
 
 // arrayInterface is like array but returns []interface{}.
 func (d *decodeState) arrayInterface() []interface{} {
-	var v = make([]interface{}, 0)
+	v := make([]interface{}, 0)
 	for {
 		// Look ahead for ] - can only happen on first iteration.
 		op := d.scanWhile(scanSkipSpace)

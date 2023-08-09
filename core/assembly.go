@@ -17,11 +17,15 @@ import (
 	"github.com/google/gopacket/tcpassembly"
 )
 
-var memLog = new(bool)
-var debugLog = new(bool)
+var (
+	memLog   = new(bool)
+	debugLog = new(bool)
+)
 
-const invalidSequence = -1
-const uint32Max = 0xFFFFFFFF
+const (
+	invalidSequence = -1
+	uint32Max       = 0xFFFFFFFF
+)
 
 // Sequence is a TCP sequence number.  It provides a few convenience functions
 // for handling TCP wrap-around.  The sequence should always be in the range
@@ -31,9 +35,11 @@ type Sequence int64
 
 // Difference defines an ordering for comparing TCP sequences that's safe for
 // roll-overs.  It returns:
-//    > 0 : if t comes after s
-//    < 0 : if t comes before s
-//      0 : if t == s
+//
+//	> 0 : if t comes after s
+//	< 0 : if t comes before s
+//	  0 : if t == s
+//
 // The number returned is the sequence difference, so 4.Difference(8) will
 // return 4.
 //
@@ -58,6 +64,8 @@ func (s Sequence) Add(t int) Sequence {
 // Reassembled call.  Callers should not need to create these structs themselves
 // except for testing.
 type Reassembly struct {
+	// Seen is the timestamp this set of bytes was pulled off the wire.
+	Seen time.Time
 	// Bytes is the next set of bytes in the stream.  May be empty.
 	Bytes []byte
 	// Skip is set to non-zero if bytes were skipped between this and the last
@@ -69,8 +77,6 @@ type Reassembly struct {
 	Start bool
 	// End is set if this set of bytes has a TCP FIN or RST accompanying it.
 	End bool
-	// Seen is the timestamp this set of bytes was pulled off the wire.
-	Seen time.Time
 }
 
 const pageBytes = 1900
@@ -81,9 +87,9 @@ const pageBytes = 1900
 // connection.
 type page struct {
 	tcpassembly.Reassembly
+	prev, next *page
 	seq        Sequence
 	index      int
-	prev, next *page
 	buf        [pageBytes]byte
 }
 
@@ -91,9 +97,9 @@ type page struct {
 // memory allocation as much as we can.  It grows but never shrinks.
 type pageCache struct {
 	free         []*page
+	pages        [][]page
 	pcSize       int
 	size, used   int
-	pages        [][]page
 	pageRequests int64
 }
 
@@ -154,11 +160,11 @@ func (c *pageCache) replace(p *page) {
 // Stream for every TCP stream.
 //
 // assembly will, in order:
-//    1) Create the stream via StreamFactory.New
-//    2) Call Reassembled 0 or more times, passing in reassembled TCP data in
-//    	 order
-//    3) Call ReassemblyComplete one time, after which the stream is
-//       dereferenced by assembly.
+//  1. Create the stream via StreamFactory.New
+//  2. Call Reassembled 0 or more times, passing in reassembled TCP data in
+//     order
+//  3. Call ReassemblyComplete one time, after which the stream is
+//     dereferenced by assembly.
 type Stream interface {
 	// Reassembled is called zero or more times. Assembly guarantees that the
 	// set of all Reassembly objects passed in during all calls are presented in
@@ -191,28 +197,28 @@ func (p *StreamPool) connections() []*connection {
 	return conns
 }
 
-//FlushOlderThan finds any streams waiting for packets older than the given
-//time, and pushes through the data they have (IE: tells them to stop waiting
-//and skip the data they're waiting for).
+// FlushOlderThan finds any streams waiting for packets older than the given
+// time, and pushes through the data they have (IE: tells them to stop waiting
+// and skip the data they're waiting for).
 //
-//Each Stream maintains a list of zero or more sets of bytes it has received
-//out-of-order.  For example, if it has processed up through sequence number
-//10, it might have bytes [15-20), [20-25), [30,50) in its list.  Each set of
-//bytes also has the timestamp it was originally viewed.  A flush call will
-//look at the smallest subsequent set of bytes, in this case [15-20), and if
-//its timestamp is older than the passed-in time, it will push it and all
-//contiguous byte-sets out to the Stream's Reassembled function.  In this case,
-//it will push [15-20), but also [20-25), since that's contiguous.  It will
-//only push [30-50) if its timestamp is also older than the passed-in time,
-//otherwise it will wait until the next FlushOlderThan to see if bytes [25-30)
-//come in.
+// Each Stream maintains a list of zero or more sets of bytes it has received
+// out-of-order.  For example, if it has processed up through sequence number
+// 10, it might have bytes [15-20), [20-25), [30,50) in its list.  Each set of
+// bytes also has the timestamp it was originally viewed.  A flush call will
+// look at the smallest subsequent set of bytes, in this case [15-20), and if
+// its timestamp is older than the passed-in time, it will push it and all
+// contiguous byte-sets out to the Stream's Reassembled function.  In this case,
+// it will push [15-20), but also [20-25), since that's contiguous.  It will
+// only push [30-50) if its timestamp is also older than the passed-in time,
+// otherwise it will wait until the next FlushOlderThan to see if bytes [25-30)
+// come in.
 //
-//If it pushes all bytes (or there were no sets of bytes to begin with) AND the
-//connection has not received any bytes since the passed-in time, the
-//connection will be closed.
+// If it pushes all bytes (or there were no sets of bytes to begin with) AND the
+// connection has not received any bytes since the passed-in time, the
+// connection will be closed.
 //
-//Returns the number of connections flushed, and of those, the number closed
-//because of the flush.
+// Returns the number of connections flushed, and of those, the number closed
+// because of the flush.
 func (a *Assembler) FlushOlderThan(t time.Time) (flushed, closed int) {
 	conns := a.connPool.connections()
 	closes := 0
@@ -284,14 +290,14 @@ func (k *key) String() string {
 // Assembler, though, it does have to do some locking to make sure that the
 // connection objects it stores are accessible to multiple Assemblers.
 type StreamPool struct {
-	conns              map[key]*connection
-	users              int
-	mu                 sync.RWMutex
 	factory            StreamFactory
+	conns              map[key]*connection
 	free               []*connection
 	all                [][]connection
+	users              int
 	nextAlloc          int
 	newConnectionCount int64
+	mu                 sync.RWMutex
 }
 
 func (p *StreamPool) grow() {
@@ -348,14 +354,14 @@ var DefaultAssemblerOptions = AssemblerOptions{
 }
 
 type connection struct {
-	key               key
-	pages             int
-	first, last       *page
-	nextSeq           Sequence
 	created, lastSeen time.Time
 	stream            tcpassembly.Stream
-	closed            bool
+	first, last       *page
+	key               key
+	pages             int
+	nextSeq           Sequence
 	mu                sync.Mutex
+	closed            bool
 }
 
 func (conn *connection) reset(k key, s tcpassembly.Stream, ts time.Time) {
@@ -395,7 +401,7 @@ type AssemblerOptions struct {
 // applications written in Go.  The Assembler uses the following methods to be
 // as fast as possible, to keep packet processing speedy:
 //
-// Avoids Lock Contention
+// # Avoids Lock Contention
 //
 // Assemblers locks connections, but each connection has an individual lock, and
 // rarely will two Assemblers be looking at the same connection.  Assemblers
@@ -415,7 +421,7 @@ type AssemblerOptions struct {
 // all lock contention.  Only when different Assemblers could receive packets
 // for the same Stream should a StreamPool be shared between them.
 //
-// Avoids Memory Copying
+// # Avoids Memory Copying
 //
 // In the common case, handling of a single TCP packet should result in zero
 // memory allocations.  The Assembler will look up the connection, figure out
@@ -423,7 +429,7 @@ type AssemblerOptions struct {
 // the appropriate connection's handling code.  Only if a packet arrives out of
 // order is its contents copied and stored in memory for later.
 //
-// Avoids Memory Allocation
+// # Avoids Memory Allocation
 //
 // Assemblers try very hard to not use memory allocation unless absolutely
 // necessary.  Packet data for sequential packets is passed directly to streams
@@ -443,10 +449,10 @@ type AssemblerOptions struct {
 // traffic spikes can result in large memory usage which isn't garbage collected
 // when typical traffic levels return.
 type Assembler struct {
-	AssemblerOptions
-	ret      []tcpassembly.Reassembly
 	pc       *pageCache
 	connPool *StreamPool
+	ret      []tcpassembly.Reassembly
+	AssemblerOptions
 }
 
 func (p *StreamPool) newConnection(k key, s tcpassembly.Stream, ts time.Time) (c *connection) {
@@ -503,9 +509,9 @@ func (a *Assembler) Assemble(netFlow gopacket.Flow, t *layers.TCP) {
 //
 // Each Assemble call results in, in order:
 //
-//    zero or one calls to StreamFactory.New, creating a stream
-//    zero or one calls to Reassembled on a single stream
-//    zero or one calls to ReassemblyComplete on the same stream
+//	zero or one calls to StreamFactory.New, creating a stream
+//	zero or one calls to Reassembled on a single stream
+//	zero or one calls to ReassemblyComplete on the same stream
 func (a *Assembler) AssembleWithTimestamp(netFlow gopacket.Flow, t *layers.TCP, timestamp time.Time) {
 	// Ignore empty TCP packets
 	if !t.SYN && !t.FIN && !t.RST && len(t.LayerPayload()) == 0 {

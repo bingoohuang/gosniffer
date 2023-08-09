@@ -3,6 +3,7 @@ package mongodb
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -17,9 +18,9 @@ const (
 )
 
 type Mongodb struct {
-	port    int
-	version string
 	source  map[string]*stream
+	version string
+	port    int
 }
 
 type stream struct {
@@ -27,14 +28,14 @@ type stream struct {
 }
 
 type packet struct {
-	isClientFlow bool //client->server
+	payload io.Reader
 
 	messageLength int
 	requestID     int
 	responseTo    int
-	opCode        int //request type
+	opCode        int // request type
 
-	payload io.Reader
+	isClientFlow bool // client->server
 }
 
 var mongodbInstance *Mongodb
@@ -58,7 +59,7 @@ func (m *Mongodb) SetFlag(flg []string) {
 	if c>>1 != 1 {
 		panic("ERR : Mongodb Number of parameters")
 	}
-	for i := 0; i < c; i = i + 2 {
+	for i := 0; i < c; i += 2 {
 		key := flg[i]
 		val := flg[i+1]
 
@@ -88,14 +89,13 @@ func (m *Mongodb) Version() string {
 }
 
 func (m *Mongodb) ResolveStream(net, transport gopacket.Flow, buf io.Reader) {
-
-	//uuid
+	// uuid
 	uuid := fmt.Sprintf("%v:%v", net.FastHash(), transport.FastHash())
 
-	//resolve packet
+	// resolve packet
 	if _, ok := m.source[uuid]; !ok {
 
-		var newStream = stream{
+		newStream := stream{
 			packets: make(chan *packet, 100),
 		}
 
@@ -103,8 +103,8 @@ func (m *Mongodb) ResolveStream(net, transport gopacket.Flow, buf io.Reader) {
 		go newStream.resolve()
 	}
 
-	//read bi-directional packet
-	//server -> client || client -> server
+	// read bidirectional packet
+	// server -> client || client -> server
 	for {
 
 		newPacket := m.newPacket(net, transport, buf)
@@ -117,14 +117,13 @@ func (m *Mongodb) ResolveStream(net, transport gopacket.Flow, buf io.Reader) {
 }
 
 func (m *Mongodb) newPacket(net, transport gopacket.Flow, r io.Reader) *packet {
-
-	//read packet
+	// read packet
 	var packet *packet
 	var err error
 	packet, err = readStream(r)
 
-	//stream close
-	if err == io.EOF {
+	// stream close
+	if errors.Is(err, io.EOF) {
 		fmt.Println(net, transport, " close")
 		return nil
 	} else if err != nil {
@@ -132,7 +131,7 @@ func (m *Mongodb) newPacket(net, transport gopacket.Flow, r io.Reader) *packet {
 		return nil
 	}
 
-	//set flow direction
+	// set flow direction
 	if transport.Src().String() == strconv.Itoa(m.port) {
 		packet.isClientFlow = false
 	} else {
@@ -160,7 +159,6 @@ func (stm *stream) resolveServerPacket(pk *packet) {
 }
 
 func (stm *stream) resolveClientPacket(pk *packet) {
-
 	var msg string
 	switch pk.opCode {
 
@@ -259,11 +257,10 @@ func (stm *stream) resolveClientPacket(pk *packet) {
 }
 
 func readStream(r io.Reader) (*packet, error) {
-
 	var buf bytes.Buffer
 	p := &packet{}
 
-	//header
+	// header
 	header := make([]byte, 16)
 	if _, err := io.ReadFull(r, header); err != nil {
 		return nil, err

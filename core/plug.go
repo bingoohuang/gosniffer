@@ -3,7 +3,7 @@ package core
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"path"
 	"path/filepath"
 	"plugin"
@@ -12,16 +12,17 @@ import (
 	"github.com/bingoohuang/gosniffer/plugs/mongodb"
 	"github.com/bingoohuang/gosniffer/plugs/mysql"
 	"github.com/bingoohuang/gosniffer/plugs/redis"
+	"github.com/bingoohuang/gosniffer/plugs/tcp"
 	"github.com/google/gopacket"
 )
 
 type Plug struct {
-	dir           string
 	ResolveStream func(net gopacket.Flow, transport gopacket.Flow, r io.Reader)
-	BPF           string
 
 	InternalPlugins  map[string]Plugin
 	ExternalPlugList map[string]ExternalPlug
+	dir              string
+	BPF              string
 }
 
 // Plugin internal plug-ins must implement this interface
@@ -37,11 +38,11 @@ type Plugin interface {
 }
 
 type ExternalPlug struct {
-	Name          string
-	Version       string
 	ResolvePacket func(net gopacket.Flow, transport gopacket.Flow, r io.Reader)
 	BPFFilter     func() string
 	SetFlag       func([]string)
+	Name          string
+	Version       string
 }
 
 func NewPlug() *Plug {
@@ -59,11 +60,12 @@ func (p *Plug) LoadInternalPlugins() {
 		"mongodb": mongodb.NewInstance(),
 		"redis":   redis.NewInstance(),
 		"http":    http.NewInstance(),
+		"tcp":     tcp.NewInstance(),
 	}
 }
 
 func (p *Plug) LoadExternalPlugins() {
-	dir, err := ioutil.ReadDir(p.dir)
+	dir, err := os.ReadDir(p.dir)
 	if err != nil {
 		return
 	}
@@ -113,22 +115,22 @@ func (p *Plug) LoadExternalPlugins() {
 func (p *Plug) ChangePath(dir string) { p.dir = dir }
 
 func (p *Plug) PrintList() {
-	//Print Internal Plug
-	for inPlugName, _ := range p.InternalPlugins {
+	// Print Internal Plug
+	for inPlugName := range p.InternalPlugins {
 		fmt.Println("internal plug : " + inPlugName)
 	}
 
-	//split
+	// split
 	fmt.Println("-- --- --")
 
-	//print External Plug
-	for exPlugName, _ := range p.ExternalPlugList {
+	// print External Plug
+	for exPlugName := range p.ExternalPlugList {
 		fmt.Println("external plug : " + exPlugName)
 	}
 }
 
 func (p *Plug) SetOption(plugName string, plugParams []string) {
-	//Load Internal Plug
+	// Load Internal Plug
 	if pg, ok := p.InternalPlugins[plugName]; ok {
 		p.ResolveStream = pg.ResolveStream
 		pg.SetFlag(plugParams)
@@ -137,7 +139,7 @@ func (p *Plug) SetOption(plugName string, plugParams []string) {
 		return
 	}
 
-	//Load External Plug
+	// Load External Plug
 	plug, err := plugin.Open("./plug/" + plugName)
 	if err != nil {
 		panic(err)

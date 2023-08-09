@@ -11,10 +11,10 @@ import (
 )
 
 type Redis struct {
-	port    int
-	version string
 	cmd     chan string
 	done    chan bool
+	version string
+	port    int
 }
 
 const (
@@ -33,10 +33,9 @@ func NewInstance() *Redis {
 }
 
 func (red Redis) ResolveStream(net, transport gopacket.Flow, r io.Reader) {
-
 	buf := bufio.NewReader(r)
 	var cmd string
-	var cmdCount = 0
+	cmdCount := 0
 	for {
 
 		line, _, _ := buf.ReadLine()
@@ -50,17 +49,17 @@ func (red Redis) ResolveStream(net, transport gopacket.Flow, r io.Reader) {
 			}
 		}
 
-		//Filtering useless data
+		// Filtering useless data
 		if !strings.HasPrefix(string(line), "*") {
 			continue
 		}
 
-		//Do not display
+		// Do not display
 		if strings.EqualFold(transport.Src().String(), strconv.Itoa(red.port)) == true {
 			continue
 		}
 
-		//run
+		// run
 		l := string(line[1])
 		cmdCount, _ = strconv.Atoi(l)
 		cmd = ""
@@ -75,9 +74,6 @@ func (red Redis) ResolveStream(net, transport gopacket.Flow, r io.Reader) {
 	}
 }
 
-/**
-SetOption
-*/
 func (red *Redis) SetFlag(flg []string) {
 	c := len(flg)
 	if c == 0 {
@@ -86,7 +82,7 @@ func (red *Redis) SetFlag(flg []string) {
 	if c>>1 != 1 {
 		panic("ERR : Redis num of params")
 	}
-	for i := 0; i < c; i = i + 2 {
+	for i := 0; i < c; i += 2 {
 		key := flg[i]
 		val := flg[i+1]
 
@@ -107,16 +103,10 @@ func (red *Redis) SetFlag(flg []string) {
 	}
 }
 
-/**
-BPFFilter
-*/
 func (red *Redis) BPFFilter() string {
 	return "tcp and port " + strconv.Itoa(redis.port)
 }
 
-/**
-Version
-*/
 func (red *Redis) Version() string {
 	return red.version
 }

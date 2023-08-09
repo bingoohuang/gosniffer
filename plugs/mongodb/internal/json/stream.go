@@ -12,15 +12,18 @@ import (
 
 // A Decoder reads and decodes JSON values from an input stream.
 type Decoder struct {
-	r     io.Reader
-	buf   []byte
+	r   io.Reader
+	err error
+
+	buf        []byte
+	tokenStack []int
+
+	scan scanner
+
 	d     decodeState
 	scanp int // start of unread data in buf
-	scan  scanner
-	err   error
 
 	tokenState int
-	tokenStack []int
 }
 
 // NewDecoder returns a new decoder that reads from r.
@@ -112,7 +115,7 @@ Input:
 		// Did the last read have an error?
 		// Delayed until now to allow buffer scan.
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				if dec.scan.step(&dec.scan, ' ') == scanEnd {
 					break Input
 				}
@@ -166,15 +169,16 @@ func nonSpace(b []byte) bool {
 
 // An Encoder writes JSON values to an output stream.
 type Encoder struct {
-	w          io.Writer
-	err        error
-	escapeHTML bool
+	w   io.Writer
+	err error
 
-	indentBuf    *bytes.Buffer
+	indentBuf *bytes.Buffer
+
+	ext          Extension
 	indentPrefix string
 	indentValue  string
 
-	ext Extension
+	escapeHTML bool
 }
 
 // NewEncoder returns a new encoder that writes to w.
@@ -254,8 +258,10 @@ func (m *RawMessage) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-var _ Marshaler = (*RawMessage)(nil)
-var _ Unmarshaler = (*RawMessage)(nil)
+var (
+	_ Marshaler   = (*RawMessage)(nil)
+	_ Unmarshaler = (*RawMessage)(nil)
+)
 
 // A Token holds a value of one of these types:
 //
@@ -265,7 +271,6 @@ var _ Unmarshaler = (*RawMessage)(nil)
 //	Number, for JSON numbers
 //	string, for JSON string literals
 //	nil, for JSON null
-//
 type Token interface{}
 
 const (
@@ -442,7 +447,8 @@ func (dec *Decoder) Token() (Token, error) {
 }
 
 func clearOffset(err error) {
-	if s, ok := err.(*SyntaxError); ok {
+	var s *SyntaxError
+	if errors.As(err, &s) {
 		s.Offset = 0
 	}
 }

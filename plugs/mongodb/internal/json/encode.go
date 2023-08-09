@@ -59,6 +59,7 @@ import (
 // becomes a member of the object unless
 //   - the field's tag is "-", or
 //   - the field is empty and its tag specifies the "omitempty" option.
+//
 // The empty values are false, 0, any
 // nil pointer or interface value, and any array, slice, map, or string of
 // length zero. The object's default key string is the struct field name
@@ -66,28 +67,28 @@ import (
 // the struct field's tag value is the key name, followed by an optional comma
 // and options. Examples:
 //
-//   // Field is ignored by this package.
-//   Field int `json:"-"`
+//	// Field is ignored by this package.
+//	Field int `json:"-"`
 //
-//   // Field appears in JSON as key "myName".
-//   Field int `json:"myName"`
+//	// Field appears in JSON as key "myName".
+//	Field int `json:"myName"`
 //
-//   // Field appears in JSON as key "myName" and
-//   // the field is omitted from the object if its value is empty,
-//   // as defined above.
-//   Field int `json:"myName,omitempty"`
+//	// Field appears in JSON as key "myName" and
+//	// the field is omitted from the object if its value is empty,
+//	// as defined above.
+//	Field int `json:"myName,omitempty"`
 //
-//   // Field appears in JSON as key "Field" (the default), but
-//   // the field is skipped if empty.
-//   // Note the leading comma.
-//   Field int `json:",omitempty"`
+//	// Field appears in JSON as key "Field" (the default), but
+//	// the field is skipped if empty.
+//	// Note the leading comma.
+//	Field int `json:",omitempty"`
 //
 // The "string" option signals that a field is stored as JSON inside a
 // JSON-encoded string. It applies only to fields of string, floating point,
 // integer, or boolean types. This extra level of encoding is sometimes used
 // when communicating with JavaScript programs:
 //
-//    Int64String int64 `json:",string"`
+//	Int64String int64 `json:",string"`
 //
 // The key name will be used if it's a non-empty string consisting of
 // only Unicode letters, digits, dollar signs, percent signs, hyphens,
@@ -134,7 +135,6 @@ import (
 // JSON cannot represent cyclic data structures and Marshal does not
 // handle them. Passing cyclic structures to Marshal will result in
 // an infinite recursion.
-//
 func Marshal(v interface{}) ([]byte, error) {
 	e := &encodeState{}
 	err := e.marshal(v, encOpts{escapeHTML: true})
@@ -245,9 +245,9 @@ var hex = "0123456789abcdef"
 
 // An encodeState encodes JSON into a bytes.Buffer.
 type encodeState struct {
+	ext          Extension
 	bytes.Buffer // accumulated output
 	scratch      [64]byte
-	ext          Extension
 }
 
 var encodeStatePool sync.Pool
@@ -313,8 +313,8 @@ type encOpts struct {
 type encoderFunc func(e *encodeState, v reflect.Value, opts encOpts)
 
 var encoderCache struct {
-	sync.RWMutex
 	m map[reflect.Type]encoderFunc
+	sync.RWMutex
 }
 
 func valueEncoder(v reflect.Value) encoderFunc {
@@ -995,13 +995,14 @@ func (e *encodeState) stringBytes(s []byte, escapeHTML bool) int {
 
 // A field represents a single field found in a struct.
 type field struct {
-	name      string
-	nameBytes []byte                 // []byte(name)
+	typ       reflect.Type
 	equalFold func(s, t []byte) bool // bytes.EqualFold or equivalent
 
-	tag       bool
+	name      string
+	nameBytes []byte // []byte(name)
 	index     []int
-	typ       reflect.Type
+
+	tag       bool
 	omitEmpty bool
 	quoted    bool
 }
@@ -1226,8 +1227,8 @@ func dominantField(fields []field) (field, bool) {
 }
 
 var fieldCache struct {
-	sync.RWMutex
 	m map[reflect.Type][]field
+	sync.RWMutex
 }
 
 // cachedTypeFields is like typeFields but uses a cache to avoid repeated work.

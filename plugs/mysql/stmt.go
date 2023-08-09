@@ -10,16 +10,15 @@ import (
 )
 
 type Stmt struct {
+	Query string
+
+	Args       []interface{}
 	ID         uint32
-	Query      string
 	ParamCount uint16
 	FieldCount uint16
-
-	Args []interface{}
 }
 
 func (stmt *Stmt) WriteToText() []byte {
-
 	var buf bytes.Buffer
 
 	str := fmt.Sprintf("Stm id[%d]: '%s';\n", stmt.ID, stmt.Query)
@@ -27,14 +26,14 @@ func (stmt *Stmt) WriteToText() []byte {
 
 	for i := 0; i < int(stmt.ParamCount); i++ {
 		var str string
-		switch stmt.Args[i].(type) {
+		switch t := stmt.Args[i].(type) {
 		case nil:
 			str = fmt.Sprintf("set @p%v = NULL;\n", i)
 		case []byte:
-			param := string(stmt.Args[i].([]byte))
+			param := string(t)
 			str = fmt.Sprintf("set @p%v = '%s';\n", i, strings.TrimSpace(param))
 		default:
-			str = fmt.Sprintf("set @p%v = %v;\n", i, stmt.Args[i])
+			str = fmt.Sprintf("set @p%v = %v;\n", i, t)
 		}
 		buf.WriteString(str)
 	}
@@ -60,12 +59,11 @@ func (stmt *Stmt) WriteToText() []byte {
 }
 
 func (stmt *Stmt) BindArgs(nullBitmap, paramTypes, paramValues []byte) error {
-
 	args := stmt.Args
 	pos := 0
 
 	var v []byte
-	var n = 0
+	n := 0
 	var isNull bool
 	var err error
 

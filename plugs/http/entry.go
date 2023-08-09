@@ -2,6 +2,7 @@ package http
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -46,7 +47,7 @@ func (m *H) ResolveStream(net, transport gopacket.Flow, buf io.Reader) {
 	if srcValue == m.port {
 		for {
 			resp, err := http.ReadResponse(bio, nil)
-			if err == io.EOF || err == io.ErrUnexpectedEOF {
+			if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
 				log.Println(transportString + "[RESPONSE EOF]")
 				return
 			}
@@ -63,7 +64,7 @@ func (m *H) ResolveStream(net, transport gopacket.Flow, buf io.Reader) {
 	} else {
 		for {
 			req, err := http.ReadRequest(bio)
-			if err == io.EOF || err == io.ErrUnexpectedEOF {
+			if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
 				log.Println(transportString + "[REQUEST EOF]")
 				return
 			}

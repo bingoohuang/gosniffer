@@ -58,7 +58,7 @@ func (d Decimal128) String() string {
 		// Bits: 1*sign 2*ignored 14*exponent 111*significand.
 		// Implicit 0b100 prefix in significand.
 		e = int(d.h>>47&(1<<14-1)) - 6176
-		//h = 4<<47 | d.h&(1<<47-1)
+		// h = 4<<47 | d.h&(1<<47-1)
 		// Spec says all of these values are out of range.
 		h, l = 0, 0
 	} else {
@@ -73,9 +73,9 @@ func (d Decimal128) String() string {
 	}
 
 	var repr [48]byte // Loop 5 times over 9 digits plus dot, negative sign, and leading zero.
-	var last = len(repr)
-	var i = len(repr)
-	var dot = len(repr) + e
+	last := len(repr)
+	i := len(repr)
+	dot := len(repr) + e
 	var rem uint32
 Loop:
 	for d9 := 0; d9 < 5; d9++ {
@@ -133,12 +133,14 @@ func divmod(h, l uint64, div uint32) (qh, ql uint64, rem uint32) {
 	d := cr<<32 + l&(1<<32-1)
 	dq := d / div64
 	dr := d % div64
-	return (aq<<32 | bq), (cq<<32 | dq), uint32(dr)
+	return aq<<32 | bq, cq<<32 | dq, uint32(dr)
 }
 
-var dNaN = Decimal128{0x1F << 58, 0}
-var dPosInf = Decimal128{0x1E << 58, 0}
-var dNegInf = Decimal128{0x3E << 58, 0}
+var (
+	dNaN    = Decimal128{0x1F << 58, 0}
+	dPosInf = Decimal128{0x1E << 58, 0}
+	dNegInf = Decimal128{0x3E << 58, 0}
+)
 
 func dErr(s string) (Decimal128, error) {
 	return dNaN, fmt.Errorf("cannot parse %q as a decimal128", s)
@@ -172,9 +174,9 @@ func ParseDecimal128(s string) (Decimal128, error) {
 
 	var add, ovr uint32
 	var mul uint32 = 1
-	var dot = -1
-	var digits = 0
-	var i = 0
+	dot := -1
+	digits := 0
+	i := 0
 	for i < len(s) {
 		c := s[i]
 		if mul == 1e9 {

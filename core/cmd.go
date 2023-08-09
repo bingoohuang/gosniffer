@@ -13,8 +13,8 @@ const (
 )
 
 type Cmd struct {
-	Device     string
 	plugHandle *Plug
+	Device     string
 }
 
 func NewCmd(p *Plug) *Cmd {
@@ -27,7 +27,7 @@ func (cm *Cmd) Parse() {
 		os.Exit(1)
 	}
 
-	//parse command
+	// parse command
 	firstArg := os.Args[1]
 	if strings.HasPrefix(firstArg, InternalCmdPrefix) {
 		cm.parseInternalCmd()
@@ -56,7 +56,7 @@ func (cm *Cmd) parseInternalCmd() {
 	os.Exit(1)
 }
 
-//usage
+// usage
 func (cm *Cmd) printHelpMessage() {
 	fmt.Println("=========================== Usage =================================")
 	fmt.Println("gosniffer [device] [plug] [plug's params(optional)]")
@@ -103,7 +103,7 @@ func (cm *Cmd) printDevices() {
 	}
 }
 
-//Parameters needed for plug-ins
+// Parameters needed for plug-ins
 func (cm *Cmd) parsePlugCmd() {
 	if len(os.Args) < 3 {
 		fmt.Println("not found [Plug-in name]")

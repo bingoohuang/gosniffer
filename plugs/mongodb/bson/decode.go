@@ -28,6 +28,7 @@
 package bson
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"net/url"
@@ -38,15 +39,15 @@ import (
 )
 
 type decoder struct {
+	docType reflect.Type
 	in      []byte
 	i       int
-	docType reflect.Type
 }
 
 var typeM = reflect.TypeOf(M{})
 
 func newDecoder(in []byte) *decoder {
-	return &decoder{in, 0, typeM}
+	return &decoder{in: in, i: 0, docType: typeM}
 }
 
 // --------------------------------------------------------------------------
@@ -73,9 +74,11 @@ const (
 	setterAddr
 )
 
-var setterStyles map[reflect.Type]int
-var setterIface reflect.Type
-var setterMutex sync.RWMutex
+var (
+	setterStyles map[reflect.Type]int
+	setterIface  reflect.Type
+	setterMutex  sync.RWMutex
+)
 
 func init() {
 	var iface Setter
@@ -90,11 +93,13 @@ func setterStyle(outt reflect.Type) int {
 	if style == setterUnknown {
 		setterMutex.Lock()
 		defer setterMutex.Unlock()
-		if outt.Implements(setterIface) {
+
+		switch {
+		case outt.Implements(setterIface):
 			setterStyles[outt] = setterType
-		} else if reflect.PtrTo(outt).Implements(setterIface) {
+		case reflect.PtrTo(outt).Implements(setterIface):
 			setterStyles[outt] = setterAddr
-		} else {
+		default:
 			setterStyles[outt] = setterNone
 		}
 		style = setterStyles[outt]
@@ -138,7 +143,8 @@ func (d *decoder) readDocTo(out reflect.Value) {
 			var raw Raw
 			d.readDocTo(reflect.ValueOf(&raw))
 			err := setter.SetBSON(raw)
-			if _, ok := err.(*TypeError); err != nil && !ok {
+			var typeError *TypeError
+			if err != nil && !errors.As(err, &typeError) {
 				panic(err)
 			}
 			return
@@ -283,7 +289,7 @@ func (d *decoder) readDocTo(out reflect.Value) {
 	d.docType = docType
 
 	if outt == typeRaw {
-		out.Set(reflect.ValueOf(Raw{0x03, d.in[start:d.i]}))
+		out.Set(reflect.ValueOf(Raw{Kind: 0x03, Data: d.in[start:d.i]}))
 	}
 }
 
@@ -365,8 +371,10 @@ func (d *decoder) readSliceDoc(t reflect.Type) interface{} {
 	return slice.Interface()
 }
 
-var typeSlice = reflect.TypeOf([]interface{}{})
-var typeIface = typeSlice.Elem()
+var (
+	typeSlice = reflect.TypeOf([]interface{}{})
+	typeIface = typeSlice.Elem()
+)
 
 func (d *decoder) readDocElems(typ reflect.Type) reflect.Value {
 	docType := d.docType
@@ -438,7 +446,6 @@ func (d *decoder) dropElem(kind byte) {
 // If the types are not compatible, the returned ok value will be
 // false and out will be unchanged.
 func (d *decoder) readElemTo(out reflect.Value, kind byte) (good bool) {
-
 	start := d.i
 
 	if kind == 0x03 {
@@ -530,7 +537,7 @@ func (d *decoder) readElemTo(out reflect.Value, kind byte) (good bool) {
 		in = Symbol(d.readStr())
 	case 0x0F: // JavaScript with scope
 		d.i += 4 // Skip length
-		js := JavaScript{d.readStr(), make(M)}
+		js := JavaScript{Code: d.readStr(), Scope: make(M)}
 		d.readDocTo(reflect.ValueOf(js.Scope))
 		in = js
 	case 0x10: // Int32
@@ -555,20 +562,21 @@ func (d *decoder) readElemTo(out reflect.Value, kind byte) (good bool) {
 	outt := out.Type()
 
 	if outt == typeRaw {
-		out.Set(reflect.ValueOf(Raw{kind, d.in[start:d.i]}))
+		out.Set(reflect.ValueOf(Raw{Kind: kind, Data: d.in[start:d.i]}))
 		return true
 	}
 
 	if setter := getSetter(outt, out); setter != nil {
-		err := setter.SetBSON(Raw{kind, d.in[start:d.i]})
-		if err == SetZero {
+		err := setter.SetBSON(Raw{Kind: kind, Data: d.in[start:d.i]})
+		if errors.Is(err, SetZero) {
 			out.Set(reflect.Zero(outt))
 			return true
 		}
 		if err == nil {
 			return true
 		}
-		if _, ok := err.(*TypeError); !ok {
+		var typeError *TypeError
+		if !errors.As(err, &typeError) {
 			panic(err)
 		}
 		return false

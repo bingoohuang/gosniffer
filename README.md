@@ -1,4 +1,3 @@
-
 # gosniffer
 
 > Capture mysql,redis,http,mongodb etc protocol...
@@ -10,10 +9,11 @@
 #### [中文使用说明](#中文使用说明)
 
 ## Support List:
-- [mysql](#mysql)
-- [Redis](#redis)
-- [Http](#http)
-- [Mongodb](#mongodb)
+
+- mysql
+- Redis
+- Http
+- Mongodb
 - Kafka (developing)
 - ...
 
@@ -22,31 +22,16 @@
 ``` bash
 $ gosniffer en0 mysql
 ```
+
 ![image](https://github.com/bingoohuang/gosniffer/raw/master/images/demo.gif)
 
 ## Setup:
 
 - support : `MacOS` `Linux` `Unix`
-- not support : `windows`
+    - Centos: `yum -y install libpcap-devel`
+    - Ubuntu: `apt-get install libpcap-dev`
+    - Windows: not support
 - If you encounter problems in the `go get` process, try upgrading the go version （如果go get 过程中遇到问题，请尝试升级go版本）
-
-### Centos
-
-``` bash
-$ yum -y install libpcap-devel
-```
-
-### Ubuntu
-
-``` bash
-$ apt-get install libpcap-dev
-```
-
-### MacOs
-
-``` bash
-
-```
 
 ### RUN
 
@@ -54,9 +39,10 @@ $ apt-get install libpcap-dev
 $ go get -v github.com/bingoohuang/gosniffer
 $ cp -rf $(go env GOPATH)/bin/gosniffer /usr/local/bin
 $ gosniffer
-
 ```
+
 ## Usage:
+
 ``` bash
 ==================================================================================
 [Usage]
@@ -83,6 +69,7 @@ $ gosniffer
 ```
 
 #### 中文使用说明
+
 ``` bash
 =======================================================================
 [使用说明]
@@ -110,6 +97,7 @@ $ gosniffer
 ```
 
 ### Example:
+
 ``` bash
 $ gosniffer lo0 mysql 
 $ gosniffer en0 redis 

@@ -13,9 +13,9 @@ import (
 )
 
 type Dispatch struct {
+	Plug    *Plug
 	device  string
 	payload []byte
-	Plug    *Plug
 }
 
 func NewDispatch(plug *Plug, cmd *Cmd) *Dispatch {
@@ -32,18 +32,17 @@ func (d *Dispatch) Capture() {
 		return
 	}
 
-	//set filter
+	// set filter
 	fmt.Println(d.Plug.BPF)
-	err = handle.SetBPFFilter(d.Plug.BPF)
-	if err != nil {
+	if err := handle.SetBPFFilter(d.Plug.BPF); err != nil {
 		log.Fatal(err)
 	}
 
-	//capture
+	// capture
 	src := gopacket.NewPacketSource(handle, handle.LinkType())
 	packets := src.Packets()
 
-	//set up assembly
+	// set up assembly
 	streamFactory := &ProtocolStreamFactory{
 		dispatch: d,
 	}
@@ -51,7 +50,7 @@ func (d *Dispatch) Capture() {
 	assembler := NewAssembler(streamPool)
 	ticker := time.Tick(time.Minute)
 
-	//loop until ctrl+z
+	// loop until ctrl+z
 	for {
 		select {
 		case packet := <-packets:
@@ -76,25 +75,15 @@ type ProtocolStreamFactory struct {
 	dispatch *Dispatch
 }
 
-type ProtocolStream struct {
-	net, transport gopacket.Flow
-	r              tcpreader.ReaderStream
-}
-
 func (m *ProtocolStreamFactory) New(net, transport gopacket.Flow) tcpassembly.Stream {
+	// init stream struct
+	readerStream := tcpreader.NewReaderStream()
 
-	//init stream struct
-	stm := &ProtocolStream{
-		net:       net,
-		transport: transport,
-		r:         tcpreader.NewReaderStream(),
-	}
-
-	//new stream
+	// new stream
 	fmt.Println("# Start new stream:", net, transport)
 
-	//decode packet
-	go m.dispatch.Plug.ResolveStream(net, transport, &(stm.r))
+	// decode packet
+	go m.dispatch.Plug.ResolveStream(net, transport, &readerStream)
 
-	return &(stm.r)
+	return &readerStream
 }

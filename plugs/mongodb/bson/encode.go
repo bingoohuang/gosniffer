@@ -245,7 +245,6 @@ func (e *encoder) addElemName(kind byte, name string) {
 }
 
 func (e *encoder) addElem(name string, v reflect.Value, minSize bool) {
-
 	if !v.IsValid() {
 		e.addElemName(0x0A, name)
 		return
@@ -303,12 +302,13 @@ func (e *encoder) addElem(name string, v reflect.Value, minSize bool) {
 
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		u := v.Uint()
-		if int64(u) < 0 {
+		switch {
+		case int64(u) < 0:
 			panic("BSON has no uint64 type, and value is too large to fit correctly in an int64")
-		} else if u <= math.MaxInt32 && (minSize || v.Kind() <= reflect.Uint32) {
+		case u <= math.MaxInt32 && (minSize || v.Kind() <= reflect.Uint32):
 			e.addElemName(0x10, name)
 			e.addInt32(int32(u))
-		} else {
+		default:
 			e.addElemName(0x12, name)
 			e.addInt64(int64(u))
 		}
@@ -353,13 +353,14 @@ func (e *encoder) addElem(name string, v reflect.Value, minSize bool) {
 	case reflect.Slice:
 		vt := v.Type()
 		et := vt.Elem()
-		if et.Kind() == reflect.Uint8 {
+		switch {
+		case et.Kind() == reflect.Uint8:
 			e.addElemName(0x05, name)
 			e.addBinary(0x00, v.Bytes())
-		} else if et == typeDocElem || et == typeRawDocElem {
+		case et == typeDocElem || et == typeRawDocElem:
 			e.addElemName(0x03, name)
 			e.addDoc(v)
-		} else {
+		default:
 			e.addElemName(0x04, name)
 			e.addDoc(v)
 		}

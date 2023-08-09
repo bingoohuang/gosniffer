@@ -40,8 +40,10 @@ func jdec(data []byte, value interface{}) error {
 	return d.Decode(value)
 }
 
-var jsonExt json.Extension
-var funcExt json.Extension
+var (
+	jsonExt json.Extension
+	funcExt json.Extension
+)
 
 // TODO
 // - Shell regular expressions ("/regexp/opts")
@@ -119,12 +121,14 @@ func jdecBinary(data []byte) (interface{}, error) {
 
 	var binData []byte
 	var binKind int64
-	if v.Type == "" && v.Binary == nil {
+
+	switch {
+	case v.Type == "" && v.Binary == nil:
 		binData = v.Func.Binary
 		binKind = v.Func.Type
-	} else if v.Type == "" {
+	case v.Type == "":
 		return v.Binary, nil
-	} else {
+	default:
 		binData = v.Binary
 		binKind, err = strconv.ParseInt(v.Type, 0, 64)
 		if err != nil {

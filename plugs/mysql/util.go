@@ -19,7 +19,6 @@ func GetNowStr(isClient bool) string {
 }
 
 func ReadStringFromByte(b []byte) (string, int) {
-
 	var l int
 	l = bytes.IndexByte(b, 0x00)
 	if l == -1 {
@@ -29,8 +28,7 @@ func ReadStringFromByte(b []byte) (string, int) {
 }
 
 func LengthBinary(b []byte) (uint32, int) {
-
-	var first = int(b[0])
+	first := int(b[0])
 	if first > 0 && first <= 250 {
 		return uint32(first), 1
 	}
@@ -50,7 +48,6 @@ func LengthBinary(b []byte) (uint32, int) {
 }
 
 func LengthEncodedInt(input []byte) (num uint64, isNull bool, n int) {
-
 	switch input[0] {
 
 	case 0xfb:
@@ -79,7 +76,6 @@ func LengthEncodedInt(input []byte) (num uint64, isNull bool, n int) {
 }
 
 func LengthEncodedString(b []byte) ([]byte, bool, int, error) {
-
 	num, isNull, n := LengthEncodedInt(b)
 	if num < 1 {
 		return nil, isNull, n, nil
