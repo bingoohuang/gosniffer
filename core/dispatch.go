@@ -42,31 +42,67 @@ func (d *Dispatch) Capture() {
 	src := gopacket.NewPacketSource(handle, handle.LinkType())
 	packets := src.Packets()
 
+	if d.Plug.dumpPacket {
+		d.dumpPackets(packets)
+		return
+	}
 	// set up assembly
 	streamFactory := &ProtocolStreamFactory{
 		dispatch: d,
 	}
 	streamPool := NewStreamPool(streamFactory)
 	assembler := NewAssembler(streamPool)
+
 	ticker := time.Tick(time.Minute)
 
 	// loop until ctrl+z
 	for {
 		select {
 		case packet := <-packets:
-			if packet.NetworkLayer() == nil ||
-				packet.TransportLayer() == nil ||
-				packet.TransportLayer().LayerType() != layers.LayerTypeTCP {
+			// A nil packet indicates the end of a pcap file.
+			if packet == nil {
+				return
+			}
+
+			netLayer := packet.NetworkLayer()
+			transportLayer := packet.TransportLayer()
+			if netLayer == nil || transportLayer == nil ||
+				transportLayer.LayerType() != layers.LayerTypeTCP {
 				fmt.Println("ERR : Unknown Packet -_-")
 				continue
 			}
-			tcp := packet.TransportLayer().(*layers.TCP)
+
+			tcp := transportLayer.(*layers.TCP)
 			assembler.AssembleWithTimestamp(
-				packet.NetworkLayer().NetworkFlow(),
+				netLayer.NetworkFlow(),
 				tcp, packet.Metadata().Timestamp,
 			)
 		case <-ticker:
+			// Every minute, flush connections that haven't seen activity in the past 2 minutes.
 			assembler.FlushOlderThan(time.Now().Add(time.Minute * -2))
+		}
+	}
+}
+
+func (d *Dispatch) dumpPackets(packets chan gopacket.Packet) {
+	// loop until ctrl+z
+	for {
+		select {
+		case packet := <-packets:
+			// A nil packet indicates the end of a pcap file.
+			if packet == nil {
+				return
+			}
+
+			netLayer := packet.NetworkLayer()
+			transportLayer := packet.TransportLayer()
+			if netLayer == nil || transportLayer == nil ||
+				transportLayer.LayerType() != layers.LayerTypeTCP {
+				fmt.Println("ERR : Unknown Packet -_-")
+				continue
+			}
+
+			fmt.Println(packet.Dump())
 		}
 	}
 }

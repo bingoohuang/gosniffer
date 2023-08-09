@@ -11,6 +11,7 @@ import (
 	"github.com/bingoohuang/gosniffer/plugs/http"
 	"github.com/bingoohuang/gosniffer/plugs/mongodb"
 	"github.com/bingoohuang/gosniffer/plugs/mysql"
+	"github.com/bingoohuang/gosniffer/plugs/packet"
 	"github.com/bingoohuang/gosniffer/plugs/redis"
 	"github.com/bingoohuang/gosniffer/plugs/tcp"
 	"github.com/google/gopacket"
@@ -23,6 +24,7 @@ type Plug struct {
 	ExternalPlugList map[string]ExternalPlug
 	dir              string
 	BPF              string
+	dumpPacket       bool
 }
 
 // Plugin internal plug-ins must implement this interface
@@ -61,6 +63,7 @@ func (p *Plug) LoadInternalPlugins() {
 		"redis":   redis.NewInstance(),
 		"http":    http.NewInstance(),
 		"tcp":     tcp.NewInstance(),
+		"packet":  packet.NewInstance(),
 	}
 }
 
@@ -130,6 +133,7 @@ func (p *Plug) PrintList() {
 }
 
 func (p *Plug) SetOption(plugName string, plugParams []string) {
+	p.dumpPacket = plugName == "packet"
 	// Load Internal Plug
 	if pg, ok := p.InternalPlugins[plugName]; ok {
 		p.ResolveStream = pg.ResolveStream
