@@ -32,7 +32,7 @@ func NewInstance() *Redis {
 	return redis
 }
 
-func (red Redis) ResolveStream(net, transport gopacket.Flow, r io.Reader) {
+func (red Redis) ResolveStream(net, transport gopacket.Flow, direction string, r io.Reader) {
 	buf := bufio.NewReader(r)
 	var cmd string
 	cmdCount := 0

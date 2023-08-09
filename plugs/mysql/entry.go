@@ -45,7 +45,7 @@ func NewInstance() *Mysql {
 	}
 }
 
-func (m *Mysql) ResolveStream(net, transport gopacket.Flow, buf io.Reader) {
+func (m *Mysql) ResolveStream(net, transport gopacket.Flow, direction string, buf io.Reader) {
 	uuid := fmt.Sprintf("%v:%v", net.FastHash(), transport.FastHash())
 
 	// generate resolve's stream

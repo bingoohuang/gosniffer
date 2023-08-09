@@ -76,14 +76,12 @@ type ProtocolStreamFactory struct {
 }
 
 func (m *ProtocolStreamFactory) New(net, transport gopacket.Flow) tcpassembly.Stream {
-	// init stream struct
-	readerStream := tcpreader.NewReaderStream()
-
-	// new stream
-	fmt.Println("# Start new stream:", net, transport)
+	r := tcpreader.NewReaderStream()
+	direction := fmt.Sprintf("%s:%s->%s:%s", net.Src(), transport.Src(), net.Dst(), transport.Dst())
+	fmt.Printf("# Start new stream: %s\n", direction)
 
 	// decode packet
-	go m.dispatch.Plug.ResolveStream(net, transport, &readerStream)
+	go m.dispatch.Plug.ResolveStream(net, transport, direction, &r)
 
-	return &readerStream
+	return &r
 }

@@ -35,7 +35,7 @@ func NewInstance() *H {
 	return &H{port: Port, version: Version}
 }
 
-func (m *H) ResolveStream(net, transport gopacket.Flow, buf io.Reader) {
+func (m *H) ResolveStream(net, transport gopacket.Flow, direction string, buf io.Reader) {
 	bio := bufio.NewReader(buf)
 	transportString := transport.String() + ": "
 

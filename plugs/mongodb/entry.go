@@ -88,7 +88,7 @@ func (m *Mongodb) Version() string {
 	return m.version
 }
 
-func (m *Mongodb) ResolveStream(net, transport gopacket.Flow, buf io.Reader) {
+func (m *Mongodb) ResolveStream(net, transport gopacket.Flow, direction string, buf io.Reader) {
 	// uuid
 	uuid := fmt.Sprintf("%v:%v", net.FastHash(), transport.FastHash())
 

@@ -41,7 +41,7 @@ func NewInstance() *H {
 	}
 }
 
-func (m *H) ResolveStream(net, transport gopacket.Flow, buf io.Reader) {
+func (m *H) ResolveStream(net, transport gopacket.Flow, direction string, buf io.Reader) {
 	transportString := transport.String()
 
 	src, _ := transport.Endpoints()
@@ -49,21 +49,17 @@ func (m *H) ResolveStream(net, transport gopacket.Flow, buf io.Reader) {
 
 	dumper := hexdump.Config{Width: m.width, PrintStrings: m.verbose}
 
-	var direction string
-	if isResponse := srcValue == m.port; isResponse {
-		direction = "RESPONSE"
-	} else {
-		direction = "REQUEST"
-	}
 	data := make([]byte, bufferSize)
+	id := 0
 	for {
 		n, err := buf.Read(data)
 		if n > 0 && !m.quiet {
-			m.print(srcValue, 0, data, n, dumper)
+			id++
+			m.print(srcValue, id, data, n, dumper)
 		}
 
 		if err != nil {
-			log.Printf("[%S] %s error : %v", direction, transportString, err)
+			log.Printf("[%s] %s error: %v", direction, transportString, err)
 		}
 
 		if n == 0 {

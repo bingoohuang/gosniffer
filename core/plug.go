@@ -17,7 +17,7 @@ import (
 )
 
 type Plug struct {
-	ResolveStream func(net gopacket.Flow, transport gopacket.Flow, r io.Reader)
+	ResolveStream func(net gopacket.Flow, transport gopacket.Flow, direction string, r io.Reader)
 
 	InternalPlugins  map[string]Plugin
 	ExternalPlugList map[string]ExternalPlug
@@ -31,14 +31,14 @@ type Plug struct {
 // SetFlag       - plug-in params
 // Version       - plug-in version
 type Plugin interface {
-	ResolveStream(net gopacket.Flow, transport gopacket.Flow, r io.Reader)
+	ResolveStream(net gopacket.Flow, transport gopacket.Flow, direction string, r io.Reader)
 	BPFFilter() string
 	SetFlag([]string)
 	Version() string
 }
 
 type ExternalPlug struct {
-	ResolvePacket func(net gopacket.Flow, transport gopacket.Flow, r io.Reader)
+	ResolvePacket func(net gopacket.Flow, transport gopacket.Flow, direction string, r io.Reader)
 	BPFFilter     func() string
 	SetFlag       func([]string)
 	Name          string
@@ -103,7 +103,7 @@ func (p *Plug) LoadExternalPlugins() {
 
 		version := versionFunc.(func() string)()
 		p.ExternalPlugList[fi.Name()] = ExternalPlug{
-			ResolvePacket: ResolvePacketFunc.(func(net gopacket.Flow, transport gopacket.Flow, r io.Reader)),
+			ResolvePacket: ResolvePacketFunc.(func(net gopacket.Flow, transport gopacket.Flow, direction string, r io.Reader)),
 			SetFlag:       setFlagFunc.(func([]string)),
 			BPFFilter:     BPFFilterFunc.(func() string),
 			Version:       version,
@@ -156,7 +156,7 @@ func (p *Plug) SetOption(plugName string, plugParams []string) {
 	if err != nil {
 		panic(err)
 	}
-	p.ResolveStream = resolvePacket.(func(net gopacket.Flow, transport gopacket.Flow, r io.Reader))
+	p.ResolveStream = resolvePacket.(func(net gopacket.Flow, transport gopacket.Flow, direction string, r io.Reader))
 	setFlag.(func([]string))(plugParams)
 	p.BPF = BPFFilter.(func() string)()
 }
